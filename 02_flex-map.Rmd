@@ -1,0 +1,217 @@
+---
+title: "Mapping fake IP addresses"
+output: 
+  flexdashboard::flex_dashboard:
+    theme: spacelab
+    favicon: img/battery-low.png
+    logo: img/battery-low-small.png
+---
+
+Column {data-width=650}
+-------------------------------------
+    
+### Interactive map
+    
+```{r map}
+# Load packages and data --------------------------------------------------
+
+# Install these packages once with install.packages("package_name")
+# then you only need to use the library() function in future
+
+library(readr)  # read and write files
+library(dplyr)  # data manipulation and pipe operator (%>%)
+library(sp)  # spatial data handling/manipulation
+library(leaflet)  # leaflet mapping functions
+
+# Read prepared data
+
+set.seed(2412)
+fake_ip_geo <- readr::read_rds("data/fake_ip_geo.RDS") %>% 
+  dplyr::mutate(
+    group = sample(  # randomly allocate to one of three groups
+      c("Group A", "Group B", "Group C"),
+      size = 500,
+      replace = TRUE
+    ),
+    latitude = as.numeric(as.character(latitude)),  # must be numeric
+    longitude = as.numeric(as.character(longitude))
+  )
+
+# Subset the data ---------------------------------------------------------
+
+# subset by the made-up groups
+
+group_a <- subset(fake_ip_geo, group == "Group A")
+group_b <- subset(fake_ip_geo, group == "Group B")
+group_c <- subset(fake_ip_geo, group == "Group C")
+
+# Generate map ------------------------------------------------------------
+
+# Function to build popup content based on data subsets in section above
+
+get_popup_content <- function(group_subset) {
+  paste0(
+    "<b>IP: ", group_subset$ip, "</b>",
+    "<br>",
+    "<br>Country: ", ifelse(group_subset$country_name == "", "unknown", group_subset$country_name),
+    "<br>Region: ", ifelse(group_subset$region_name == "", "unknown", group_subset$region_name),
+    "<br>City: ", ifelse(group_subset$city == "", "unknown", group_subset$city),
+    "<br>Time zone: ", ifelse(group_subset$time_zone == "", "unknown", group_subset$time_zone),
+    "<br>",
+    "<br>Arbitrary group: ", group_subset$group_name
+  )
+}
+
+# Basic approach: the map is built up of a map layer and marker layers
+
+leaflet::leaflet() %>%
+  
+  # add underlying map
+  leaflet::addProviderTiles(providers$OpenStreetMap) %>%
+  
+  # group A points layer
+  leaflet::addAwesomeMarkers(
+    group = "Group A",  # the name of this group
+    data = group_a,  # the subsetted data
+    popup = ~get_popup_content(group_a),
+      icon = awesomeIcons(
+      library = "ion",
+      icon = sample(
+        c(
+          "ion-battery-empty",
+          "ion-battery-low",
+          "ion-battery-full"
+        ),
+        replace = TRUE,
+        nrow(group_a)
+      ),
+      iconColor = "white",
+      markerColor = "lightred"
+    )
+  ) %>% 
+  
+  # group b points layer
+  leaflet::addAwesomeMarkers(
+    group = "Group B",  # the name of this group
+    data = group_b,  # the subsetted data
+    popup = ~get_popup_content(group_b),
+            icon = awesomeIcons(
+      library = "ion",
+      icon = sample(
+        c(
+          "ion-battery-empty",
+          "ion-battery-low",
+          "ion-battery-full"
+        ),
+        replace = TRUE,
+        nrow(group_b)
+      ),
+      iconColor = "white",
+      markerColor = "red"
+    )
+  ) %>% 
+  
+  # group c points layer
+  leaflet::addAwesomeMarkers(
+    group = "Group C",  # the name of this group
+    data = group_c,  # the subsetted data
+    popup = ~get_popup_content(group_c),
+    icon = awesomeIcons(
+      library = "ion",
+      icon = sample(
+        c(
+          "ion-battery-empty",
+          "ion-battery-low",
+          "ion-battery-full"
+        ),
+        replace = TRUE,
+        nrow(group_c)
+      ),
+      iconColor = "white",
+      markerColor = "darkred"
+    )
+  ) %>% 
+  
+  # add a checkbox system for turning layers on and off
+  leaflet::addLayersControl(
+    overlayGroups = c(
+      "Group A",
+      "Group B",
+      "Group C"
+    ),
+    options = layersControlOptions(collapsed = FALSE)
+  ) %>%
+  hideGroup(c("Group B", "Group C")) %>%   # turn layers off by default
+  
+  # add a simple measuring tool
+  leaflet::addMeasure()
+```
+   
+Column {data-width=350 .tabset .tabset-fade}
+-------------------------------------
+
+### About
+
+#### Purpose
+
+To demonstrate:
+
+* geolocation of artificially-generated [IP addresses](https://en.wikipedia.org/wiki/IP_address#Geolocation)
+* plotting the coordinates of the IP addresses with arbitrarily-assigned colours and icons
+* display the data in tabular form alongside the map for further interrogation
+* wrapping this into a user-friendly interface
+
+#### How to
+
+You can:
+
+* zoom with the + and - buttons on the map (upper left), or with your mouse wheel
+* toggle marker layers with the checkboxes on the map (upper right)
+* measure distances and areas with the square-rule button on the map (upper right)
+* click markers to get information about that point
+* search, filter and sort a table of these data in the 'Explore the data' tab
+
+#### Key
+
+The icons and colours are arbitrary and have no intrinsic meaning.
+
+| Element | Meaning |
+| :- | :- |
+| <img src = "img/battery-full.png" style="width:50px;"> | Full battery |
+| <img src = "img/battery-low.png" style="width:50px;"> | Low battery |
+| <img src = "img/battery-empty.png" style="width:50px;"> | Empty battery |
+| <img src = "img/group-a.png" style="width:50px;"> | Group A |
+| <img src = "img/group-b.png" style="width:50px;"> | Group B |
+| <img src = "img/group-c.png" style="width:50px;"> | Group C |
+
+#### Data and tools
+
+Coding was performed with R, using the:
+
+* `generator` to generate fake IP addresses ([link](https://github.com/paulhendricks/generator))
+* `freegeoip` to geolocate the IP addresses via API ([link](https://github.com/luiscape/freegeoip))
+* `leaflet` for building the map ([link](https://rstudio.github.io/leaflet/))
+* `DT` for datatables ([link](https://rstudio.github.io/DT/ package))
+* `flexdashboard` for the layout ([link](https://rmarkdown.rstudio.com/flexdashboard/))
+* ionicons for icons ([link](http://ionicons.com))
+
+#### Version
+
+Matt Dray
+<br>Version 0.2
+<br>Generated `r format(Sys.time(), "%d %B %Y")`
+
+### Explore the data
+
+```{r}
+DT::datatable(
+  data = fake_ip_geo[
+    order(fake_ip_geo$country_name),
+    -which(names(fake_ip_geo) %in% c("country_code", "region_code", "metro_code", "latitude", "longitude"))
+    ],
+  filter = "top",
+  colnames = c("IP address", "Country name", "Region name", "City", "Zip code", "Time zone", "Group"),
+  rownames = FALSE,
+  options = list(pageLength = 25)
+)
+```
