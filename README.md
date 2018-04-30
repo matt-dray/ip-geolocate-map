@@ -12,4 +12,4 @@ There is a also an interactive table created using [`datatable`](https://rstudio
 
 ## Data
 
-The [IP address](https://en.wikipedia.org/wiki/IP_address) data are fake and were generated using the [generator](https://github.com/paulhendricks/generator) package, then geolocated using the [freegeoip](https://github.com/luiscape/freegeoip) package. 'Groups' were assigned arbitarilty and randomly.
+The [IP address](https://en.wikipedia.org/wiki/IP_address) data are fake and were generated using the [generator](https://github.com/paulhendricks/generator) package, then geolocated using the [freegeoip](https://github.com/luiscape/freegeoip) package. 'Groups' were assigned arbitrarily and randomly.
